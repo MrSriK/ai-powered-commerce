@@ -13,7 +13,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "users")
 public class User {
@@ -38,7 +48,7 @@ public class User {
     private String externalAuthId;
 
     @Column(name = "email_verified", nullable = false)
-    private Boolean emailVerified;
+    private boolean emailVerified;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
