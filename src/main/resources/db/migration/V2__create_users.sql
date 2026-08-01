@@ -3,7 +3,7 @@ CREATE TABLE users (
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(254) NOT NULL UNIQUE,
-    phone_number VARCHAR(15),
+    phone_number VARCHAR(15) NOT NULL,
     external_auth_id VARCHAR(255) UNIQUE,
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     role VARCHAR(20) NOT NULL,

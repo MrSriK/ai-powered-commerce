@@ -13,6 +13,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,6 +40,8 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
+    @NotBlank
+    @Email
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 

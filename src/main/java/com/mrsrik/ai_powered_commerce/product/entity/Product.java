@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.mrsrik.ai_powered_commerce.category.entity.Category;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,6 +13,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,24 +38,31 @@ public class Product {
     @Column(name = "category_id", insertable = false, updatable = false)
     private UUID categoryId;
 
-    @Column(nullable = false)
+    @NotBlank
+    @Size(max = 100)
+    @Column(nullable = false, length = 100)
     private String name;
 
+    @NotBlank
+    @Size(max = 5000)
     @Column(nullable = false)
     private String description;
 
-    @Column(name = "brand", nullable = false)
+    @Column(nullable = false, length = 100)
     private String brand;
 
-    @Column(name = "sku", nullable = false)
+    @Column(nullable = false, unique = true)
     private String sku;
 
+    @DecimalMin(value = "0.00")
     @Column(name = "cost_price", nullable = false)
     private BigDecimal costPrice;
 
+    @DecimalMin(value = "0.00")
     @Column(name = "selling_price", nullable = false)
     private BigDecimal sellingPrice;
 
+    @Min(0)
     @Column(nullable = false)
     private Integer stock;
 

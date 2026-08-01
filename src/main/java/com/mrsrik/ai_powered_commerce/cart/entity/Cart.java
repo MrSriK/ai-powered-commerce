@@ -1,9 +1,9 @@
-package com.mrsrik.ai_powered_commerce.productImage.entity;
+package com.mrsrik.ai_powered_commerce.cart.entity;
 
 import java.time.Instant;
 import java.util.UUID;
 
-import com.mrsrik.ai_powered_commerce.product.entity.Product;
+import com.mrsrik.ai_powered_commerce.user.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,7 +12,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,20 +26,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "product_images")
-public class ProductImage {
+@Table(name = "carts")
+public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "product_id", insertable = false, updatable = false)
-    private UUID productId;
-
-    @Column(name = "display_order", nullable = false)
-    private int displayOrder;
-
-    @Column(name = "image_url", nullable = false)
-    private String imageUrl;
+    @Column(name = "user_id", nullable = false, updatable = false, unique = true, insertable = false)
+    private UUID userId;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
@@ -50,7 +44,7 @@ public class ProductImage {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }

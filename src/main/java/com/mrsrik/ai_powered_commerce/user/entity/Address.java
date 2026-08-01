@@ -1,9 +1,7 @@
-package com.mrsrik.ai_powered_commerce.address.entity;
+package com.mrsrik.ai_powered_commerce.user.entity;
 
 import java.time.Instant;
 import java.util.UUID;
-
-import com.mrsrik.ai_powered_commerce.user.entity.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
