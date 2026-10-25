@@ -31,7 +31,7 @@ public class AiMessage {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "conversation_id", nullable = false, updatable = false, insertable = false)
+    @Column(name = "conversation_id", nullable = false, updatable = false)
     private UUID conversationId;
 
     @Size(max=1000)

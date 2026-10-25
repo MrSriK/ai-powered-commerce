@@ -35,7 +35,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "category_id", insertable = false, updatable = false)
+    @Column(name = "category_id", updatable = false)
     private UUID categoryId;
 
     @NotBlank

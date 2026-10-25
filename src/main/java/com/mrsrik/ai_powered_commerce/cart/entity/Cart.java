@@ -32,7 +32,7 @@ public class Cart {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false, updatable = false, unique = true, insertable = false)
+    @Column(name = "user_id", nullable = false, updatable = false, unique = true)
     private UUID userId;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)

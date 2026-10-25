@@ -36,7 +36,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", insertable = false, updatable = false, nullable = false)
+    @Column(name = "user_id", updatable = false, nullable = false)
     private UUID userId;
 
     @Column(name = "shipping_name", nullable = false, length = 255)
@@ -63,7 +63,7 @@ public class Order {
     @Column(nullable = false, length = 100)
     private String country;
 
-    @Column(name = "transaction_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "transaction_id", nullable = false, updatable = false)
     private String transactionId;
 
     @Column(name = "total_amount", nullable = false)

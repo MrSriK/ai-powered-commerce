@@ -30,7 +30,7 @@ public class ProductImage {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "product_id", insertable = false, updatable = false)
+    @Column(name = "product_id", updatable = false)
     private UUID productId;
 
     @Column(name = "display_order", nullable = false)

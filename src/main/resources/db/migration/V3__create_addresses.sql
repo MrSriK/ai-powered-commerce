@@ -10,9 +10,13 @@ CREATE TABLE addresses (
     postal_code VARCHAR(20) NOT NULL,
     country VARCHAR(100) NOT NULL,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_addresses_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE UNIQUE INDEX uq_default_address_per_user ON addresses(user_id) WHERE is_default = TRUE;
+
+CREATE TRIGGER trg_addresses_updated_at
+  BEFORE UPDATE ON addresses
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();

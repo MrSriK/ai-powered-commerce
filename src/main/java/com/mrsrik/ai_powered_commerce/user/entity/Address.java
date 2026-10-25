@@ -30,7 +30,7 @@ public class Address {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", insertable = false, updatable = false)
+    @Column(name = "user_id", updatable = false)
     private UUID userId;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -32,7 +32,7 @@ public class AiConversation {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false, updatable = false, insertable = false)
+    @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
 
     @Column(length = 255)

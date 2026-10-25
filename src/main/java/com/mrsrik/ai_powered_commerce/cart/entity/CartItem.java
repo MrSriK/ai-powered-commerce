@@ -33,10 +33,10 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "cart_id", nullable = false, updatable = false, insertable = false)
+    @Column(name = "cart_id", nullable = false, updatable = false)
     private UUID cartId;
 
-    @Column(name = "product_id", nullable = false, updatable = false, insertable = false)
+    @Column(name = "product_id", nullable = false, updatable = false)
     private UUID productId;
 
     @Min(1)

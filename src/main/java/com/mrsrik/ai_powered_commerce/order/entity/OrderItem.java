@@ -31,10 +31,10 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "order_id", insertable = false, updatable = false)
+    @Column(name = "order_id", updatable = false)
     private UUID orderId;
 
-    @Column(name = "product_id", insertable = false, updatable = false)
+    @Column(name = "product_id", updatable = false)
     private UUID productId;
 
     @Column(name = "product_name", nullable = false, updatable = false)
