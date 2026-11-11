@@ -34,7 +34,7 @@ public class Address {
     private UUID userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, insertable = false, updatable = false)
     private User user;
 
     @Column(name = "recipient_name", nullable = false, length = 255)
@@ -62,7 +62,7 @@ public class Address {
     private String country;
 
     @Column(name = "is_default", nullable = false)
-    private boolean isDefault;
+    private boolean defaultAddress;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
