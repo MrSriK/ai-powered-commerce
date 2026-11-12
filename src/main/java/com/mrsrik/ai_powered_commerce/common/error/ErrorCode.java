@@ -1,6 +1,9 @@
 package com.mrsrik.ai_powered_commerce.common.error;
 
-/** Every machine-readable error code in the design's "Exception mapping" table, plus ORDER_TOTAL_TOO_LARGE (OQ-13). */
+/**
+ * Every machine-readable error code in the design's "Exception mapping" table,
+ * plus ORDER_TOTAL_TOO_LARGE (OQ-13).
+ */
 public enum ErrorCode {
     VALIDATION_FAILED,
     INVALID_PAGINATION,
@@ -20,6 +23,7 @@ public enum ErrorCode {
     CART_ITEM_NOT_FOUND,
     ORDER_NOT_FOUND,
     CONVERSATION_NOT_FOUND,
+    USER_NOT_FOUND,
     PRODUCT_UNAVAILABLE,
     ROUTE_NOT_FOUND,
     DUPLICATE_SKU,
