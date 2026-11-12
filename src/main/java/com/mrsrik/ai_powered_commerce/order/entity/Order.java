@@ -82,6 +82,9 @@ public class Order {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private Instant updatedAt;
 
+    @Column(name = "shipped_at")
+    private Instant shippedAt;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

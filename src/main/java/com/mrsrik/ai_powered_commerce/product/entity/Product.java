@@ -44,7 +44,6 @@ public class Product {
     private String name;
 
     @NotBlank
-    @Size(max = 5000)
     @Column(nullable = false)
     private String description;
 
