@@ -9,3 +9,16 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+
+  scheduler:
+    image: curlimages/curl:8.23.0
+    container_name: ai-powered-commerce-scheduler
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_KEY: ${APP_INTERNAL_API_KEY:-}
+      TARGET_URL: http://host.docker.internal:3000/internal/orders/advance
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'while true; do curl -sS -m 30 -X POST -H "X-Internal-Api-Key: $$INTERNAL_API_KEY" "$$TARGET_URL" || echo "order progression call failed"; echo; sleep 120; done'
