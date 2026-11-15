@@ -13,6 +13,7 @@ class ApiExceptionMappingTest {
 
     static Stream<Arguments> table() {
         return Stream.of(
+                Arguments.of(new EmptyMessageException(), HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED),
                 Arguments.of(new InvalidPaginationException(), HttpStatus.BAD_REQUEST, ErrorCode.INVALID_PAGINATION),
                 Arguments.of(new EmailMismatchException(), HttpStatus.BAD_REQUEST, ErrorCode.EMAIL_MISMATCH),
                 Arguments.of(new ProductNotFoundException(), HttpStatus.NOT_FOUND, ErrorCode.PRODUCT_NOT_FOUND),

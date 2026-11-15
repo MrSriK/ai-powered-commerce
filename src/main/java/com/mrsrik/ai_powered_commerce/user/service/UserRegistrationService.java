@@ -49,20 +49,28 @@ public class UserRegistrationService {
         if (hasTokenEmail && !tokenEmailMatches) {
             throw new EmailMismatchException();
         }
-        if (userRepository.existsByExternalAuthId(sub)) {
+        boolean emailVerified = tokenEmailMatches && isTrue(jwt.getClaim("email_verified"));
+        return register(sub, request, emailVerified);
+    }
+
+    /**
+     * Registers a user by externalAuthId with a specific role (e.g. from backend Auth0 signup flow).
+     */
+    public UserProfileDto register(String externalAuthId, RegisterUserRequest request, boolean emailVerified) {
+        String email = EmailNormalizer.normalize(request.email());
+        if (userRepository.existsByExternalAuthId(externalAuthId)) {
             throw new AlreadyRegisteredException();
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyRegisteredException();
         }
-        boolean emailVerified = tokenEmailMatches && isTrue(jwt.getClaim("email_verified"));
 
         try {
-            User saved = userWriter.insert(sub, request.firstName(), request.lastName(), email,
-                    request.phoneNumber(), emailVerified);
+            User saved = userWriter.insert(externalAuthId, request.firstName(), request.lastName(), email,
+                    request.phoneNumber(), emailVerified, request.role());
             return UserProfileDto.from(saved);
         } catch (DataIntegrityViolationException e) {
-            throw translate(e, sub, email);
+            throw translate(e, externalAuthId, email);
         }
     }
 

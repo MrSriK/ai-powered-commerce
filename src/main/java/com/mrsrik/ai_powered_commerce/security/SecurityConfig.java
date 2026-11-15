@@ -44,8 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories", "/api/categories/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // any valid token, registered or not
-                        .requestMatchers(HttpMethod.POST, "/api/users/register").authenticated()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().hasAnyRole("CUSTOMER", "ADMIN"))
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(converter))

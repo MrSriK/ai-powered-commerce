@@ -45,7 +45,7 @@ class IdentityProviderOutageIT extends AbstractPostgresIT {
 
     @DynamicPropertySource
     static void issuer(DynamicPropertyRegistry registry) {
-        registry.add("app.auth.issuer-uri", () -> ISSUER);
+        registry.add("app.auth.domain", () -> ISSUER);
         registry.add("app.auth.audience", () -> AUDIENCE);
     }
 
@@ -63,8 +63,8 @@ class IdentityProviderOutageIT extends AbstractPostgresIT {
     @Autowired
     private ApplicationContext context;
 
-    @Value("${app.auth.issuer-uri}")
-    private String configuredIssuer;
+    @Value("${app.auth.domain}")
+    private String configuredDomain;
 
     private static String token() {
         return TestTokens.bearer(TestTokens.token().issuer(ISSUER).audience(AUDIENCE).build());
@@ -89,7 +89,7 @@ class IdentityProviderOutageIT extends AbstractPostgresIT {
 
     @Test
     void contextStartedWhileIssuerIsDown() {
-        assertThat(configuredIssuer).isEqualTo(ISSUER);
+        assertThat(configuredDomain).isEqualTo(ISSUER);
         assertThat(context.getBean(JwtDecoder.class)).isNotNull();
     }
 
@@ -104,11 +104,9 @@ class IdentityProviderOutageIT extends AbstractPostgresIT {
     }
 
     @Test
-    void registerRouteGives503() throws Exception {
-        assertOutage(mvc.perform(post("/api/users/register")
-                .header(HttpHeaders.AUTHORIZATION, token())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"firstName\":\"A\",\"lastName\":\"B\",\"phoneNumber\":\"+15550000000\"}")));
+    void userMeRouteGives503() throws Exception {
+        assertOutage(mvc.perform(get("/api/users/me")
+                .header(HttpHeaders.AUTHORIZATION, token())));
     }
 
     @Test

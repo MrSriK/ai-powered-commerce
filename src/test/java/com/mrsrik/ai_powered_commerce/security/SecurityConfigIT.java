@@ -1,5 +1,6 @@
 package com.mrsrik.ai_powered_commerce.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -146,21 +147,11 @@ class SecurityConfigIT extends AbstractPostgresIT {
     }
 
     @Test
-    void unregisteredIdentityMayReachRegisterRoute() throws Exception {
-        unregistered();
-        when(userWriter.insert(eq(SUB), eq("Ada"), eq("Lovelace"), eq("ada@example.test"), isNull(), eq(false)))
-                .thenReturn(User.builder().id(UUID.randomUUID()).externalAuthId(SUB).firstName("Ada")
-                        .lastName("Lovelace").email("ada@example.test").role(Role.CUSTOMER).build());
-        mvc.perform(post("/api/users/register").header("Authorization", bearer("good"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"firstName\":\"Ada\",\"lastName\":\"Lovelace\",\"email\":\"Ada@Example.test\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.role").value("CUSTOMER"));
-    }
-
-    @Test
-    void registerRouteWithoutTokenIs401() throws Exception {
-        code(mvc.perform(post("/api/users/register")), 401, "AUTHENTICATION_REQUIRED");
+    void authRoutesArePermitAllWithoutToken() throws Exception {
+        mvc.perform(post("/api/auth/login"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotIn(401, 403));
+        mvc.perform(post("/api/auth/signup"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotIn(401, 403));
     }
 
     @Test

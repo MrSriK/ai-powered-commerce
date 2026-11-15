@@ -44,12 +44,16 @@ class OwnerScopedAuthorizationIT extends AbstractWebIT {
 
     private static final String ORDERS_URL = "/api/orders";
     private static final String CART_ITEMS_URL = "/api/cart/items";
+    private static final String AI_CONVERSATIONS_URL = "/api/ai/conversations";
 
     @Autowired
     private CartItemRepository cartItemRepository;
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private com.mrsrik.ai_powered_commerce.ai.repository.AiConversationRepository aiConversationRepository;
 
     @Test
     @DisplayName("User B cannot read User A's order and receives identical 404 as non-existent id")
@@ -236,5 +240,89 @@ class OwnerScopedAuthorizationIT extends AbstractWebIT {
                 .andExpect(jsonPath("$.totalElements", is(1)))
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].id", is(activeOrder.getId().toString())));
+    }
+
+    @Test
+    @DisplayName("User B cannot access User A's AI conversation and receives 404 CONVERSATION_NOT_FOUND")
+    void customerCannotAccessAnotherUsersConversation() throws Exception {
+        Caller customerA = callers.registeredCustomer();
+        Caller customerB = callers.registeredCustomer();
+
+        var convA = aiConversationRepository.saveAndFlush(
+                com.mrsrik.ai_powered_commerce.ai.entity.AiConversation.builder()
+                        .userId(customerA.userId())
+                        .title("Private Conversation")
+                        .build());
+
+        // User B cannot read User A's conversation history -> 404
+        perform(get(AI_CONVERSATIONS_URL + "/" + convA.getId() + "/messages"), customerB)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("CONVERSATION_NOT_FOUND")));
+
+        // User B cannot post to User A's conversation -> 404
+        perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(AI_CONVERSATIONS_URL + "/" + convA.getId() + "/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"Intrusion attempt\"}"), customerB)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("CONVERSATION_NOT_FOUND")));
+    }
+
+    @Test
+    @DisplayName("Customer only sees their own AI conversations in conversation list")
+    void customerOnlySeesOwnConversationsInList() throws Exception {
+        Caller customerA = callers.registeredCustomer();
+        Caller customerB = callers.registeredCustomer();
+
+        var convA = aiConversationRepository.saveAndFlush(
+                com.mrsrik.ai_powered_commerce.ai.entity.AiConversation.builder()
+                        .userId(customerA.userId())
+                        .title("User A Chat")
+                        .build());
+
+        var convB = aiConversationRepository.saveAndFlush(
+                com.mrsrik.ai_powered_commerce.ai.entity.AiConversation.builder()
+                        .userId(customerB.userId())
+                        .title("User B Chat")
+                        .build());
+
+        perform(get(AI_CONVERSATIONS_URL), customerA)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(convA.getId().toString())));
+
+        perform(get(AI_CONVERSATIONS_URL), customerB)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(convB.getId().toString())));
+    }
+
+    @Test
+    @DisplayName("Soft-deleted AI conversation returns 404 and is excluded from list")
+    void softDeletedConversationIsExcludedAndReturns404() throws Exception {
+        Caller customer = callers.registeredCustomer();
+
+        var activeConv = aiConversationRepository.saveAndFlush(
+                com.mrsrik.ai_powered_commerce.ai.entity.AiConversation.builder()
+                        .userId(customer.userId())
+                        .title("Active Chat")
+                        .build());
+
+        var deletedConv = aiConversationRepository.saveAndFlush(
+                com.mrsrik.ai_powered_commerce.ai.entity.AiConversation.builder()
+                        .userId(customer.userId())
+                        .title("Deleted Chat")
+                        .deletedAt(Instant.now())
+                        .build());
+
+        // Direct get messages on soft-deleted conversation -> 404
+        perform(get(AI_CONVERSATIONS_URL + "/" + deletedConv.getId() + "/messages"), customer)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("CONVERSATION_NOT_FOUND")));
+
+        // List only contains active conversation
+        perform(get(AI_CONVERSATIONS_URL), customer)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(activeConv.getId().toString())));
     }
 }

@@ -57,38 +57,17 @@ class FirstVerticalSliceIT extends AbstractWebIT {
                 .sellingPrice(new BigDecimal("39.99"))
                 .stock(25));
 
-        // 1. Unregistered identity registers via POST /api/users/register
+        // 1. Customer profile provisioned for caller
         Caller customer = callers.unregistered(b -> b.email("ada.lovelace@example.test").emailVerified(true));
-
-        String registerPayload = """
-                {
-                    "firstName": "Ada",
-                    "lastName": "Lovelace",
-                    "email": "ada.lovelace@example.test",
-                    "phoneNumber": "+15551234567"
-                }
-                """;
-
-        String registerResponse = perform(
-                post("/api/users/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerPayload),
-                customer)
-                .andExpect(status().isCreated())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.firstName").value("Ada"))
-                .andExpect(jsonPath("$.lastName").value("Lovelace"))
-                .andExpect(jsonPath("$.email").value("ada.lovelace@example.test"))
-                .andExpect(jsonPath("$.phoneNumber").value("+15551234567"))
-                .andExpect(jsonPath("$.emailVerified").value(true))
-                .andExpect(jsonPath("$.role").value("CUSTOMER"))
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        JsonNode userJson = objectMapper.readTree(registerResponse);
-        UUID registeredUserId = UUID.fromString(userJson.get("id").asText());
+        com.mrsrik.ai_powered_commerce.user.entity.User registeredUser = testData.user(b -> b
+                .externalAuthId(customer.sub())
+                .firstName("Ada")
+                .lastName("Lovelace")
+                .email("ada.lovelace@example.test")
+                .phoneNumber("+15551234567")
+                .emailVerified(true)
+                .role(com.mrsrik.ai_powered_commerce.user.enums.Role.CUSTOMER));
+        UUID registeredUserId = registeredUser.getId();
         assertThat(registeredUserId).isNotNull();
 
         // 2. Query registered user profile via GET /api/users/me

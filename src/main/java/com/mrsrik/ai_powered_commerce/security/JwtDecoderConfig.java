@@ -2,7 +2,6 @@ package com.mrsrik.ai_powered_commerce.security;
 
 import java.time.Duration;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -36,6 +35,17 @@ public class JwtDecoderConfig {
     }
 
     /**
+     * Formats the Auth0 domain into a fully qualified HTTPS issuer URI with a trailing slash.
+     */
+    public static String formatIssuer(String domain) {
+        String trimmed = domain.trim();
+        String withScheme = (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+                ? trimmed
+                : "https://" + trimmed;
+        return withScheme.endsWith("/") ? withScheme : withScheme + "/";
+    }
+
+    /**
      * Lazy decoder: {@code withIssuerLocation(...).build()} contacts the issuer's
      * discovery endpoint immediately,
      * so it runs inside a {@link SupplierJwtDecoder}, i.e. on the first token, not
@@ -56,8 +66,12 @@ public class JwtDecoderConfig {
      * ({@code BadJwtException}) still pass through and produce 401.
      */
     @Bean
-    JwtDecoder jwtDecoder(@Value("${app.auth.issuer-uri}") String issuer,
-            @Value("${app.auth.audience}") String audience) {
+    JwtDecoder jwtDecoder(AuthProperties authProperties) {
+        return jwtDecoder(authProperties.domain(), authProperties.audience());
+    }
+
+    public JwtDecoder jwtDecoder(String domain, String audience) {
+        String issuer = formatIssuer(domain);
         return new IdentityProviderFailureTranslatingJwtDecoder(new SupplierJwtDecoder(() -> {
             NimbusJwtDecoder decoder = NimbusJwtDecoder.withIssuerLocation(issuer).build();
             decoder.setJwtValidator(tokenValidator(issuer, audience));

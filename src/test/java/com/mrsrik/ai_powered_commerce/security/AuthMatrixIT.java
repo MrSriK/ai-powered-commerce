@@ -37,7 +37,6 @@ import com.mrsrik.securityfixture.SecurityTestController;
 @Import(SecurityTestController.class)
 class AuthMatrixIT extends AbstractWebIT {
 
-    private static final String REGISTER = "/api/users/register";
     private static final String ME = "/api/users/me";
     private static final String TEST_PROTECTED = "/api/_securitytest/protected";
     private static final String TEST_ADMIN = "/api/_securitytest/admin";
@@ -56,10 +55,7 @@ class AuthMatrixIT extends AbstractWebIT {
     }
 
     /**
-     * CHAIN-LEVEL path matrix for protected routes. The cart, orders, AI and catalog-write controllers do not
-     * exist yet, so these rows only assert what the security chain decides before routing (401 / 403
-     * USER_NOT_REGISTERED). They will gain real handlers in later phases; extend this list with new routes
-     * and never assert a registered caller's result on these rows. Paths copied from the design endpoints table.
+     * CHAIN-LEVEL path matrix for protected routes.
      */
     static final List<Route> CHAIN_PROTECTED = List.of(
             r(HttpMethod.GET, "/api/cart"),
@@ -97,12 +93,14 @@ class AuthMatrixIT extends AbstractWebIT {
             r(HttpMethod.GET, "/swagger-ui/index.html"),
             r(HttpMethod.GET, "/swagger-ui.html"));
 
-    private static final Route REGISTER_ROUTE = r(HttpMethod.POST, REGISTER);
+    /** Public POST routes: authentication endpoints permit absent token. */
+    static final List<Route> PUBLIC_POST = List.of(
+            r(HttpMethod.POST, "/api/auth/signup"),
+            r(HttpMethod.POST, "/api/auth/login"));
 
-    /** Every non-public route, including /register. */
+    /** Every non-public route. */
     static List<Route> allNonPublic() {
-        return Stream.of(CHAIN_PROTECTED.stream(), REAL_REGISTERED_ONLY.stream(), Stream.of(REGISTER_ROUTE))
-                .flatMap(s -> s).toList();
+        return Stream.concat(CHAIN_PROTECTED.stream(), REAL_REGISTERED_ONLY.stream()).toList();
     }
 
     // ---------------------------------------------------------------- helpers
@@ -123,10 +121,6 @@ class AuthMatrixIT extends AbstractWebIT {
     private static String body(String first, String last, String email, String phone) {
         return "{\"firstName\":\"" + first + "\",\"lastName\":\"" + last + "\",\"email\":\"" + email + "\""
                 + (phone == null ? "" : ",\"phoneNumber\":\"" + phone + "\"") + "}";
-    }
-
-    private ResultActions register(Caller caller, String json) throws Exception {
-        return perform(post(REGISTER).contentType(MediaType.APPLICATION_JSON).content(json), caller);
     }
 
     private long userCount() {
@@ -205,6 +199,14 @@ class AuthMatrixIT extends AbstractWebIT {
         }
     }
 
+    @Test
+    void publicPostRoutesWithoutTokenAreNot401Or403() throws Exception {
+        for (Route route : PUBLIC_POST) {
+            MockHttpServletResponse response = call(route, null);
+            assertThat(response.getStatus()).as(route + " without bearer").isNotIn(401, 403);
+        }
+    }
+
     // ---------------------------------------------------------------- 2. unregistered caller
 
     @Test
@@ -219,21 +221,18 @@ class AuthMatrixIT extends AbstractWebIT {
     }
 
     @Test
-    void unregisteredCallerCanRegisterThenIsAdmittedWithTheSameToken() throws Exception {
+    void unregisteredCallerAdmittedAfterRegistrationWithSameToken() throws Exception {
         Caller caller = callers.unregistered();
         error(perform(get(ME), caller), 403, "USER_NOT_REGISTERED");
         assertThat(userCount()).isZero();
 
-        String created = register(caller, validBody()).andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+        testData.user(b -> b.externalAuthId(caller.sub()));
         assertThat(userCount()).isEqualTo(1);
 
         String me = perform(get(ME), caller).andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString();
-        assertThat(me).isEqualTo(created);
+        assertThat(me).isNotEmpty();
 
-        // Proof that the chain now admits the user (registered callers pass the chain). A stable route is used;
-        // the not-yet-existing GET /api/cart is only asserted to be neither 401 nor 403 so it survives later phases.
         perform(get(TEST_PROTECTED), caller).andExpect(status().isOk());
         assertThat(call(r(HttpMethod.GET, "/api/cart"), caller.bearer()).getStatus()).isNotIn(401, 403);
     }
@@ -241,18 +240,10 @@ class AuthMatrixIT extends AbstractWebIT {
     // ---------------------------------------------------------------- 3. registered and disabled callers
 
     @Test
-    void registeredCallerOnRegisterGets409AndRowCountIsUnchanged() throws Exception {
-        Caller caller = callers.registeredCustomer();
-        long before = userCount();
-        error(register(caller, validBody()), 409, "ALREADY_REGISTERED");
-        assertThat(userCount()).isEqualTo(before);
-    }
-
-    @Test
     void softDeletedUserGets401AccountDisabledEverywhereAndIsNotRestored() throws Exception {
         Caller caller = callers.disabledCustomer();
         long before = userCount();
-        List<Route> routes = List.of(r(HttpMethod.GET, ME), REGISTER_ROUTE, r(HttpMethod.GET, "/api/cart"),
+        List<Route> routes = List.of(r(HttpMethod.GET, ME), r(HttpMethod.GET, "/api/cart"),
                 r(HttpMethod.GET, "/api/products"));
         for (Route route : routes) {
             assertError(call(route, caller.bearer()), route, 401, "ACCOUNT_DISABLED");
@@ -276,146 +267,5 @@ class AuthMatrixIT extends AbstractWebIT {
         error(perform(get(TEST_ADMIN), customer), 403, "FORBIDDEN");
         Caller admin = callers.registeredAdmin(t -> t.claim("roles", List.of("CUSTOMER")));
         perform(get(TEST_ADMIN), admin).andExpect(status().isOk());
-    }
-
-    // ---------------------------------------------------------------- 5. validation limits (13.3)
-
-    private static String local(int length) {
-        return "a".repeat(length);
-    }
-
-    /** Valid address of exactly 254 characters (local part 64, labels of at most 63). */
-    private static String email254() {
-        String email = local(64) + "@" + "a".repeat(63) + "." + "b".repeat(63) + "." + "c".repeat(61);
-        assertThat(email).hasSize(254);
-        return email;
-    }
-
-    /** Valid address of exactly 255 characters (only the size limit is violated). */
-    private static String email255() {
-        String email = local(64) + "@" + "a".repeat(63) + "." + "b".repeat(63) + "." + "c".repeat(62);
-        assertThat(email).hasSize(255);
-        return email;
-    }
-
-    static Stream<Arguments> validationCases() {
-        String ok = "ada@example.test";
-        return Stream.of(
-                Arguments.of("firstName 255 ok", body("a".repeat(255), "L", ok, null), List.of()),
-                Arguments.of("firstName 256 bad", body("a".repeat(256), "L", ok, null), List.of("firstName")),
-                Arguments.of("lastName 255 ok", body("A", "l".repeat(255), ok, null), List.of()),
-                Arguments.of("lastName 256 bad", body("A", "l".repeat(256), ok, null), List.of("lastName")),
-                Arguments.of("email 254 ok", body("A", "L", email254(), null), List.of()),
-                Arguments.of("email 255 bad", body("A", "L", email255(), null), List.of("email")),
-                Arguments.of("phone 15 ok", body("A", "L", ok, "1".repeat(15)), List.of()),
-                Arguments.of("phone 16 bad", body("A", "L", ok, "1".repeat(16)), List.of("phoneNumber")),
-                Arguments.of("blank firstName", body("   ", "L", ok, null), List.of("firstName")),
-                Arguments.of("blank lastName", body("A", "", ok, null), List.of("lastName")),
-                Arguments.of("blank email", body("A", "L", " ", null), List.of("email")),
-                Arguments.of("malformed email", body("A", "L", "not-an-email", null), List.of("email")),
-                Arguments.of("many bad fields at once",
-                        body(" ", "x".repeat(256), "not-an-email", "1".repeat(16)),
-                        List.of("firstName", "lastName", "email", "phoneNumber")));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("validationCases")
-    void registrationValidationLimits(String name, String json, List<String> invalidFields) throws Exception {
-        Caller caller = callers.unregistered();
-        if (invalidFields.isEmpty()) {
-            register(caller, json).andExpect(status().isCreated());
-            assertThat(userCount()).isEqualTo(1);
-            return;
-        }
-        String response = error(register(caller, json), 400, "VALIDATION_FAILED").andReturn().getResponse()
-                .getContentAsString();
-        for (String field : invalidFields) {
-            assertThat(response).contains("\"field\":\"" + field + "\"");
-        }
-        assertThat(response.split("\"field\":", -1).length - 1).isEqualTo(invalidFields.size());
-        assertThat(userCount()).isZero();
-    }
-
-    // ---------------------------------------------------------------- 6. role in the body
-
-    @Test
-    void roleAdminInBodyIsIgnored() throws Exception {
-        Caller caller = callers.unregistered();
-        register(caller, "{\"firstName\":\"Ada\",\"lastName\":\"L\",\"email\":\"a@example.test\",\"role\":\"ADMIN\"}")
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("CUSTOMER"));
-        assertThat(jdbcTemplate.queryForObject("SELECT role FROM users WHERE external_auth_id = ?", String.class,
-                caller.sub())).isEqualTo("CUSTOMER");
-    }
-
-    // ---------------------------------------------------------------- 7. email_verified matrix
-
-    /** Arguments: token email claim, token email_verified, body email, expected status, expected emailVerified. */
-    static Stream<Arguments> emailVerifiedCases() {
-        return Stream.of(
-                Arguments.of("ada@example.test", true, "ada@example.test", 201, true),
-                Arguments.of("ADA@Example.TEST", true, "ada@example.test", 201, true),
-                Arguments.of("ada@example.test", false, "ada@example.test", 201, false),
-                Arguments.of("ada@example.test", null, "ada@example.test", 201, false),
-                Arguments.of(null, null, "ada@example.test", 201, false),
-                Arguments.of(null, true, "ada@example.test", 201, false),
-                Arguments.of("other@example.test", true, "ada@example.test", 400, null));
-    }
-
-    @ParameterizedTest(name = "claim={0} verified={1} body={2} -> {3} emailVerified={4}")
-    @MethodSource("emailVerifiedCases")
-    void emailVerifiedMatrix(String claimEmail, Boolean claimVerified, String bodyEmail, int expectedStatus,
-            Boolean expectedVerified) throws Exception {
-        Caller caller = callers.unregistered(t -> {
-            if (claimEmail != null) {
-                t.email(claimEmail);
-            }
-            if (claimVerified != null) {
-                t.emailVerified(claimVerified);
-            }
-        });
-        ResultActions result = register(caller, body("Ada", "Lovelace", bodyEmail, null));
-        if (expectedStatus == 201) {
-            result.andExpect(status().isCreated()).andExpect(jsonPath("$.emailVerified").value(expectedVerified));
-            assertThat(userCount()).isEqualTo(1);
-        } else {
-            error(result, 400, "EMAIL_MISMATCH");
-            assertThat(userCount()).isZero();
-        }
-    }
-
-    // ---------------------------------------------------------------- 8. email uniqueness
-
-    @Test
-    void sameEmailInAnotherCaseAsRegisteredUserIs409() throws Exception {
-        testData.user(b -> b.email("taken@example.test"));
-        long before = userCount();
-        error(register(callers.unregistered(), body("A", "B", "TAKEN@Example.test", null)), 409,
-                "EMAIL_ALREADY_REGISTERED");
-        assertThat(userCount()).isEqualTo(before);
-    }
-
-    @Test
-    void emailOfSoftDeletedUserIs409() throws Exception {
-        testData.user(b -> b.email("gone@example.test").deletedAt(java.time.Instant.now()));
-        long before = userCount();
-        error(register(callers.unregistered(), body("A", "B", "gone@example.test", null)), 409,
-                "EMAIL_ALREADY_REGISTERED");
-        assertThat(userCount()).isEqualTo(before);
-    }
-
-    // ---------------------------------------------------------------- 9. content type and malformed JSON
-
-    @Test
-    void wrongContentTypeIs415() throws Exception {
-        Caller caller = callers.unregistered();
-        error(perform(post(REGISTER).contentType(MediaType.TEXT_PLAIN).content(validBody()), caller), 415,
-                "UNSUPPORTED_MEDIA_TYPE");
-        assertThat(userCount()).isZero();
-    }
-
-    @Test
-    void malformedJsonIs400() throws Exception {
-        error(register(callers.unregistered(), "{\"firstName\":"), 400, "MALFORMED_REQUEST");
-        assertThat(userCount()).isZero();
     }
 }

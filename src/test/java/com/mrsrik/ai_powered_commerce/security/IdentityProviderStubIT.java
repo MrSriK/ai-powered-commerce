@@ -100,7 +100,7 @@ class IdentityProviderStubIT extends AbstractPostgresIT {
 
     @DynamicPropertySource
     static void issuer(DynamicPropertyRegistry registry) {
-        registry.add("app.auth.issuer-uri", () -> ISSUER);
+        registry.add("app.auth.domain", () -> ISSUER);
         registry.add("app.auth.audience", () -> AUDIENCE);
     }
 

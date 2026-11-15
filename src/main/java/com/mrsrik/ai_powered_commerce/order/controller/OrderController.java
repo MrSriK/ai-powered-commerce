@@ -28,6 +28,8 @@ import com.mrsrik.ai_powered_commerce.security.CurrentUser;
 
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.Operation;
+
 /**
  * Controller exposing customer checkout, order reads, admin status transitions, and cancellations
  * (Requirements 4.1, 4.8, 4.10, 4.11, 4.12, 4.13, 4.14, 4.15, 4.16, 4.21, 4.22, 2.6, 8.7).
@@ -71,6 +73,7 @@ public class OrderController {
 
     @PatchMapping(path = "/{id}/status", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update order status", description = "Requires ADMIN role")
     public OrderDetailDto updateStatus(@PathVariable UUID id,
                                        @Valid @RequestBody UpdateOrderStatusRequest request) {
         return orderService.transition(id, request.status());

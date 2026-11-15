@@ -61,7 +61,7 @@ class UserRegistrationServiceTest {
     }
 
     private static RegisterUserRequest request(String email) {
-        return new RegisterUserRequest("Ada", "Lovelace", email, "+15550001111");
+        return new RegisterUserRequest("Ada", "Lovelace", email, "+15550001111", Role.CUSTOMER);
     }
 
     private static User saved(String email, boolean verified) {
@@ -77,11 +77,11 @@ class UserRegistrationServiceTest {
 
     private void stubInsert(boolean verified) {
         when(userWriter.insert(eq(SUB), eq("Ada"), eq("Lovelace"), eq("ada@example.test"), eq("+15550001111"),
-                eq(verified))).thenReturn(saved("ada@example.test", verified));
+                eq(verified), eq(Role.CUSTOMER))).thenReturn(saved("ada@example.test", verified));
     }
 
     private void assertNothingInserted() {
-        verify(userWriter, never()).insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean());
+        verify(userWriter, never()).insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -90,6 +90,18 @@ class UserRegistrationServiceTest {
         UserProfileDto dto = service.register(jwt(SUB, null, null), request("  Ada@Example.TEST "));
         assertThat(dto.email()).isEqualTo("ada@example.test");
         assertThat(dto.role()).isEqualTo(Role.CUSTOMER);
+    }
+
+    @Test
+    void registersUserWithSpecifiedRole() {
+        when(userWriter.insert(eq(SUB), eq("Ada"), eq("Lovelace"), eq("ada@example.test"), eq("+15550001111"),
+                eq(false), eq(Role.ADMIN))).thenReturn(
+                        User.builder().id(UUID.randomUUID()).firstName("Ada").lastName("Lovelace").email("ada@example.test")
+                                .phoneNumber("+15550001111").emailVerified(false).role(Role.ADMIN)
+                                .createdAt(Instant.now()).build());
+        RegisterUserRequest adminRequest = new RegisterUserRequest("Ada", "Lovelace", "ada@example.test", "+15550001111", Role.ADMIN);
+        UserProfileDto dto = service.register(SUB, adminRequest, false);
+        assertThat(dto.role()).isEqualTo(Role.ADMIN);
     }
 
     @Test
@@ -132,7 +144,7 @@ class UserRegistrationServiceTest {
         InOrder order = inOrder(userRepository, userWriter);
         order.verify(userRepository).existsByExternalAuthId(SUB);
         order.verify(userRepository).existsByEmailIgnoreCase("ada@example.test");
-        order.verify(userWriter).insert(eq(SUB), anyString(), anyString(), anyString(), any(), anyBoolean());
+        order.verify(userWriter).insert(eq(SUB), anyString(), anyString(), anyString(), any(), anyBoolean(), eq(Role.CUSTOMER));
     }
 
     @Test
@@ -178,7 +190,7 @@ class UserRegistrationServiceTest {
 
     @Test
     void externalAuthIdViolationMapsToAlreadyRegistered() {
-        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()))
+        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
                 .thenThrow(violation("users_external_auth_id_key"));
         assertThatThrownBy(() -> service.register(jwt(SUB, null, null), request("ada@example.test")))
                 .isInstanceOf(AlreadyRegisteredException.class);
@@ -186,7 +198,7 @@ class UserRegistrationServiceTest {
 
     @Test
     void emailViolationMapsToEmailAlreadyRegistered() {
-        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()))
+        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
                 .thenThrow(violation("users_email_key"));
         assertThatThrownBy(() -> service.register(jwt(SUB, null, null), request("ada@example.test")))
                 .isInstanceOf(EmailAlreadyRegisteredException.class);
@@ -194,7 +206,7 @@ class UserRegistrationServiceTest {
 
     @Test
     void unreadableConstraintFallsBackToSubThenEmail() {
-        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()))
+        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
                 .thenThrow(new DataIntegrityViolationException("dup"));
         when(userRepository.findByExternalAuthId(SUB)).thenReturn(Optional.of(saved("x@example.test", false)));
         assertThatThrownBy(() -> service.register(jwt(SUB, null, null), request("ada@example.test")))
@@ -209,7 +221,7 @@ class UserRegistrationServiceTest {
     @Test
     void unexplainedViolationIsRethrown() {
         DataIntegrityViolationException original = new DataIntegrityViolationException("dup");
-        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()))
+        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
                 .thenThrow(original);
         assertThatThrownBy(() -> service.register(jwt(SUB, null, null), request("ada@example.test")))
                 .isSameAs(original);
@@ -218,7 +230,7 @@ class UserRegistrationServiceTest {
     @Test
     void otherNamedConstraintIsRethrown() {
         DataIntegrityViolationException original = violation("chk_something");
-        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()))
+        when(userWriter.insert(anyString(), anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
                 .thenThrow(original);
         assertThatThrownBy(() -> service.register(jwt(SUB, null, null), request("ada@example.test")))
                 .isSameAs(original);

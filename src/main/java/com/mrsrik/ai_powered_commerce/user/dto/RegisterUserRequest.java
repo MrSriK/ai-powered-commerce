@@ -1,19 +1,23 @@
 package com.mrsrik.ai_powered_commerce.user.dto;
 
+import com.mrsrik.ai_powered_commerce.user.enums.Role;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * Self-registration request. It has no role component, so a client can never choose a role (Requirement 13.2).
+ * Registration request holding personal information and assigned role.
  * Strings are trimmed before validation, so whitespace-only values fail {@code @NotBlank}. A blank phone number
- * becomes null. Email case is handled later by {@code EmailNormalizer}.
+ * becomes null. Role defaults to {@code CUSTOMER} if null. Email case is handled later by {@code EmailNormalizer}.
  */
 public record RegisterUserRequest(
         @NotBlank @Size(max = 255) String firstName,
         @NotBlank @Size(max = 255) String lastName,
         @NotBlank @Email @Size(max = 254) String email,
-        @Size(max = 15) String phoneNumber) {
+        @Size(max = 15) String phoneNumber,
+        @NotNull Role role) {
 
     public RegisterUserRequest {
         firstName = trim(firstName);

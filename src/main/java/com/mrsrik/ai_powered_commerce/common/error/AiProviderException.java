@@ -1,14 +1,20 @@
 package com.mrsrik.ai_powered_commerce.common.error;
 
-import org.springframework.http.HttpStatus;
-
-public class AiProviderException extends ApiException {
+public class AiProviderException extends com.mrsrik.ai_powered_commerce.ai.provider.AiProviderException {
 
     public AiProviderException() {
-        this("The AI provider is unavailable");
+        super();
     }
 
     public AiProviderException(String message) {
-        super(ErrorCode.AI_PROVIDER_UNAVAILABLE, HttpStatus.BAD_GATEWAY, message);
+        super(message);
+    }
+
+    public AiProviderException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public AiProviderException(Throwable cause) {
+        super(cause);
     }
 }

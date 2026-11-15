@@ -46,7 +46,7 @@ class UserRegistrationServiceIT extends AbstractPostgresIT {
     }
 
     private static RegisterUserRequest request(String email) {
-        return new RegisterUserRequest("Ada", "Lovelace", email, "+15550001111");
+        return new RegisterUserRequest("Ada", "Lovelace", email, "+15550001111", Role.CUSTOMER);
     }
 
     private int count(String where, Object... args) {

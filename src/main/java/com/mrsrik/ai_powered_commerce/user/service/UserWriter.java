@@ -26,13 +26,13 @@ public class UserWriter {
     }
 
     /**
-     * Persists a CUSTOMER, flushes so unique constraints fire here, and refreshes the row so the database-managed
+     * Persists a user with a specific role, flushes so unique constraints fire here, and refreshes the row so the database-managed
      * {@code createdAt} and {@code updatedAt} are populated. Throws {@code DataIntegrityViolationException} on a
      * unique violation; the transaction is rolled back before the exception reaches the caller.
      */
     @Transactional
     public User insert(String externalAuthId, String firstName, String lastName, String email, String phoneNumber,
-            boolean emailVerified) {
+            boolean emailVerified, Role role) {
         User user = User.builder()
                 .externalAuthId(externalAuthId)
                 .firstName(firstName)
@@ -40,7 +40,7 @@ public class UserWriter {
                 .email(email)
                 .phoneNumber(phoneNumber)
                 .emailVerified(emailVerified)
-                .role(Role.CUSTOMER)
+                .role(role)
                 .build();
         // saveAndFlush goes through the repository proxy, which translates the persistence exception
         // into DataIntegrityViolationException (a plain EntityManager call in a @Service would not).

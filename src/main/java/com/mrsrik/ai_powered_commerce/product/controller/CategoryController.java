@@ -20,6 +20,8 @@ import com.mrsrik.ai_powered_commerce.product.dto.CategoryDto;
 import com.mrsrik.ai_powered_commerce.product.dto.CategoryRequest;
 import com.mrsrik.ai_powered_commerce.product.service.CategoryService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 
 @RestController
@@ -33,6 +35,7 @@ public class CategoryController {
     }
 
     @GetMapping
+    @SecurityRequirements
     public List<CategoryDto> list() {
         return categoryService.list();
     }
@@ -40,12 +43,14 @@ public class CategoryController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create category", description = "Requires ADMIN role")
     public CategoryDto create(@Valid @RequestBody CategoryRequest request) {
         return categoryService.create(request);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update category", description = "Requires ADMIN role")
     public CategoryDto update(@PathVariable UUID id, @Valid @RequestBody CategoryRequest request) {
         return categoryService.update(id, request);
     }
@@ -53,6 +58,7 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete category", description = "Requires ADMIN role")
     public void delete(@PathVariable UUID id) {
         categoryService.delete(id);
     }

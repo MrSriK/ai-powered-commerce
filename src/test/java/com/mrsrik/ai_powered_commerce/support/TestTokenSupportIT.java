@@ -38,7 +38,7 @@ class TestTokenSupportIT extends AbstractWebIT {
         try (InputStream in = getClass().getResourceAsStream("/application-test.properties")) {
             props.load(in);
         }
-        assertThat(props.getProperty("app.auth.issuer-uri")).isEqualTo(TestTokens.ISSUER);
+        assertThat(props.getProperty("app.auth.domain")).isEqualTo("test-auth0.us.auth0.com");
         assertThat(props.getProperty("app.auth.audience")).isEqualTo(TestTokens.AUDIENCE);
     }
 

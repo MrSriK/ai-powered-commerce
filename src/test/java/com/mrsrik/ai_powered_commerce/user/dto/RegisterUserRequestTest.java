@@ -60,7 +60,7 @@ class RegisterUserRequestTest {
     }
 
     private static RegisterUserRequest valid() {
-        return new RegisterUserRequest("Ada", "Lovelace", "ada@x.test", "5551234");
+        return new RegisterUserRequest("Ada", "Lovelace", "ada@x.test", "5551234", Role.CUSTOMER);
     }
 
     @Test
@@ -71,9 +71,9 @@ class RegisterUserRequestTest {
     @Test
     void nameLimitsAtBoundary() {
         assertTrue(
-                invalidFields(new RegisterUserRequest("a".repeat(255), "b".repeat(255), "a@b.test", null)).isEmpty());
+                invalidFields(new RegisterUserRequest("a".repeat(255), "b".repeat(255), "a@b.test", null, Role.CUSTOMER)).isEmpty());
         assertEquals(Set.of("firstName", "lastName"),
-                invalidFields(new RegisterUserRequest("a".repeat(256), "b".repeat(256), "a@b.test", null)));
+                invalidFields(new RegisterUserRequest("a".repeat(256), "b".repeat(256), "a@b.test", null, Role.CUSTOMER)));
     }
 
     @Test
@@ -84,70 +84,77 @@ class RegisterUserRequestTest {
         String at255 = "a".repeat(64) + "@" + label + "." + label + "." + "c".repeat(58) + ".com";
         assertEquals(254, at254.length());
         assertEquals(255, at255.length());
-        assertTrue(invalidFields(new RegisterUserRequest("A", "B", at254, null)).isEmpty());
-        assertTrue(invalidFields(new RegisterUserRequest("A", "B", at255, null)).contains("email"));
+        assertTrue(invalidFields(new RegisterUserRequest("A", "B", at254, null, Role.CUSTOMER)).isEmpty());
+        assertTrue(invalidFields(new RegisterUserRequest("A", "B", at255, null, Role.CUSTOMER)).contains("email"));
     }
 
     @Test
     void phoneLimitsAtBoundary() {
-        assertTrue(invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "1".repeat(15))).isEmpty());
+        assertTrue(invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "1".repeat(15), Role.CUSTOMER)).isEmpty());
         assertEquals(Set.of("phoneNumber"),
-                invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "1".repeat(16))));
+                invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "1".repeat(16), Role.CUSTOMER)));
     }
 
     @Test
     void blankAndWhitespaceOnlyValuesViolateNotBlank() {
         assertEquals(Set.of("firstName", "lastName", "email"),
-                invalidFields(new RegisterUserRequest("   ", "", "  ", null)));
-        assertEquals(Set.of("firstName", "lastName", "email"),
-                invalidFields(new RegisterUserRequest(null, null, null, null)));
+                invalidFields(new RegisterUserRequest("   ", "", "  ", null, Role.CUSTOMER)));
+        assertEquals(Set.of("firstName", "lastName", "email", "role"),
+                invalidFields(new RegisterUserRequest(null, null, null, null, null)));
     }
 
     @Test
     void malformedEmailViolatesEmail() {
-        assertEquals(Set.of("email"), invalidFields(new RegisterUserRequest("A", "B", "not-an-email", null)));
+        assertEquals(Set.of("email"), invalidFields(new RegisterUserRequest("A", "B", "not-an-email", null, Role.CUSTOMER)));
     }
 
     @Test
     void nullAndBlankPhoneAreAccepted() {
-        assertNull(new RegisterUserRequest("A", "B", "a@b.test", null).phoneNumber());
-        assertNull(new RegisterUserRequest("A", "B", "a@b.test", "   ").phoneNumber());
-        assertTrue(invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "   ")).isEmpty());
+        assertNull(new RegisterUserRequest("A", "B", "a@b.test", null, Role.CUSTOMER).phoneNumber());
+        assertNull(new RegisterUserRequest("A", "B", "a@b.test", "   ", Role.CUSTOMER).phoneNumber());
+        assertTrue(invalidFields(new RegisterUserRequest("A", "B", "a@b.test", "   ", Role.CUSTOMER)).isEmpty());
     }
 
     @Test
     void trimsStrings() {
-        RegisterUserRequest request = new RegisterUserRequest("  Ada ", " Lovelace  ", "  Ada@X.test ", " 555 ");
+        RegisterUserRequest request = new RegisterUserRequest("  Ada ", " Lovelace  ", "  Ada@X.test ", " 555 ", Role.CUSTOMER);
         assertEquals("Ada", request.firstName());
         assertEquals("Lovelace", request.lastName());
         assertEquals("Ada@X.test", request.email());
         assertEquals("555", request.phoneNumber());
+        assertEquals(Role.CUSTOMER, request.role());
     }
 
     @Test
     void reportsEveryInvalidFieldTogether() {
-        assertEquals(Set.of("firstName", "lastName", "email", "phoneNumber"),
-                invalidFields(new RegisterUserRequest("", "x".repeat(256), "bad", "1".repeat(16))));
+        assertEquals(Set.of("firstName", "lastName", "email", "phoneNumber", "role"),
+                invalidFields(new RegisterUserRequest("", "x".repeat(256), "bad", "1".repeat(16), null)));
     }
 
     @Test
-    void hasNoRoleComponent() {
+    void hasRoleComponent() {
         Set<String> names = Arrays.stream(RegisterUserRequest.class.getRecordComponents())
                 .map(RecordComponent::getName)
                 .collect(Collectors.toSet());
-        assertEquals(Set.of("firstName", "lastName", "email", "phoneNumber"), names);
-        assertFalse(names.contains("role"));
+        assertEquals(Set.of("firstName", "lastName", "email", "phoneNumber", "role"), names);
+        assertTrue(names.contains("role"));
     }
 
     @Test
-    void unknownRolePropertyIsIgnoredByBootMapper() {
+    void rolePropertyIsParsedByBootMapper() throws Exception {
         RegisterUserRequest request = mapper.readValue(
                 "{\"firstName\":\"A\",\"lastName\":\"B\",\"email\":\"a@b.test\",\"role\":\"ADMIN\"}",
                 RegisterUserRequest.class);
 
-        assertEquals(new RegisterUserRequest("A", "B", "a@b.test", null), request);
+        assertEquals(new RegisterUserRequest("A", "B", "a@b.test", null, Role.ADMIN), request);
         assertTrue(validator.validate(request).isEmpty());
-        assertFalse(mapper.writeValueAsString(request).contains("role"));
+        assertTrue(mapper.writeValueAsString(request).contains("\"role\":\"ADMIN\""));
+    }
+
+    @Test
+    void nullRoleFailsValidation() {
+        RegisterUserRequest request = new RegisterUserRequest("A", "B", "a@b.test", null, null);
+        assertEquals(Set.of("role"), invalidFields(request));
     }
 
     @Test

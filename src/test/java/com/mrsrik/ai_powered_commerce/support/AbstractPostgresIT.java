@@ -24,7 +24,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@Import({ AbstractPostgresIT.ContainerConfig.class, TestData.class })
+@Import({ AbstractPostgresIT.ContainerConfig.class, TestData.class, FakeAiProvider.class })
 public abstract class AbstractPostgresIT {
 
     /** Same major version as docker-compose.yml. */

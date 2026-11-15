@@ -28,6 +28,9 @@ import com.mrsrik.ai_powered_commerce.product.service.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+
 @RestController
 @RequestMapping("/api/products")
 @Validated
@@ -40,6 +43,7 @@ public class ProductController {
     }
 
     @GetMapping
+    @SecurityRequirements
     public PageResponse<ProductSummaryDto> list(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) @Size(max = 255) String search,
@@ -49,6 +53,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
+    @SecurityRequirements
     public ProductDetailDto get(@PathVariable UUID id) {
         return productService.get(id);
     }
@@ -56,12 +61,14 @@ public class ProductController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create product", description = "Requires ADMIN role")
     public ProductDetailDto create(@Valid @RequestBody CreateProductRequest request) {
         return productService.create(request);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update product", description = "Requires ADMIN role")
     public ProductDetailDto update(@PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
         return productService.update(id, request);
     }
@@ -69,6 +76,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete product", description = "Requires ADMIN role")
     public void delete(@PathVariable UUID id) {
         productService.delete(id);
     }

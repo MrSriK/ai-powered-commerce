@@ -121,6 +121,30 @@ class JwtDecoderConfigTest {
     }
 
     @Test
+    void formatIssuerAddsSchemeAndTrailingSlash() {
+        assertThat(JwtDecoderConfig.formatIssuer("dev-xxx.us.auth0.com"))
+                .isEqualTo("https://dev-xxx.us.auth0.com/");
+        assertThat(JwtDecoderConfig.formatIssuer("https://dev-xxx.us.auth0.com"))
+                .isEqualTo("https://dev-xxx.us.auth0.com/");
+        assertThat(JwtDecoderConfig.formatIssuer("https://dev-xxx.us.auth0.com/"))
+                .isEqualTo("https://dev-xxx.us.auth0.com/");
+        assertThat(JwtDecoderConfig.formatIssuer("http://127.0.0.1:8080/"))
+                .isEqualTo("http://127.0.0.1:8080/");
+    }
+
+    @Test
+    void jwtDecoderWithAuthPropertiesBuildsDecoder() {
+        AuthProperties properties = new AuthProperties(
+                "https://test-api.example.test",
+                "client-id",
+                "client-secret",
+                "dev-xxx.us.auth0.com",
+                "Username-Password-Authentication");
+        JwtDecoder decoder = assertDoesNotThrow(() -> new JwtDecoderConfig().jwtDecoder(properties));
+        assertThat(decoder).isNotNull();
+    }
+
+    @Test
     void jwtDecoderBeanIsLazyAndFailsFastWhenIssuerIsUnreachable() throws Exception {
         String issuer = "http://localhost:0/issuer-placeholder/";
         JwtDecoder lazy = assertDoesNotThrow(
