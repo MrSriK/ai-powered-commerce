@@ -29,15 +29,15 @@ class PostgresBaseIT extends AbstractPostgresIT {
     private DataSource dataSource;
 
     @Test
-    void flywayRanAllNineMigrationsAndSchemaExists() {
+    void flywayRanAllTenMigrationsAndSchemaExists() {
         Integer ok = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class);
         Integer all = jdbcTemplate.queryForObject("SELECT count(*) FROM flyway_schema_history", Integer.class);
-        assertThat(ok).isEqualTo(9);
-        assertThat(all).isEqualTo(9);
+        assertThat(ok).isEqualTo(10);
+        assertThat(all).isEqualTo(10);
         List<String> versions = jdbcTemplate.queryForList(
                 "SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class);
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         assertThat(jdbcTemplate.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'", String.class))
                 .contains("products", "orders", "users", "carts");
@@ -70,7 +70,7 @@ class PostgresBaseIT extends AbstractPostgresIT {
         assertThat(count("categories")).isZero();
         testData.user();
         assertThat(count("users")).isEqualTo(1);
-        assertThat(count("flyway_schema_history")).isEqualTo(9);
+        assertThat(count("flyway_schema_history")).isEqualTo(10);
     }
 
     @Test
